@@ -1,0 +1,150 @@
+<!doctype html>
+<body style="text-align: center; background-color:black">
+    <canvas style="background-color: black;" id="canvas"></canvas>
+    <script>
+        function Planet(mass, x, y, vx, vy, col) {
+            this.mass = mass
+            this.x = x
+            this.y = y
+            this.ax = 0
+            this.ay = 0
+            this.vx = vx
+            this.vy = vy
+            this.color = col
+        }
+
+        function drawLine(x, y, dx, dy, color) {
+            ctx.beginPath()
+            ctx.strokeStyle = color
+            ctx.moveTo(x, y)
+            ctx.lineTo(x+dx, y+dy)
+            ctx.stroke()
+        }
+
+        function drawForces(x, y, body) {
+            a_mag = Math.sqrt(body.ax*body.ax + body.ay*body.ay)
+            drawLine(x, y, 20*body.ax/a_mag, -20*body.ay/a_mag, 'red')
+            drawLine(x, y, body.ax*body.mass, -body.ay*body.mass, '#FFFF00')
+            drawLine(x, y, body.vx, -body.vy, '#00FF00')
+            drawLine(x, y, body.vx*body.mass, -body.vy*body.mass, '#002222')
+        }
+
+        var canvas = document.getElementById('canvas')
+        canvas.width = 1500
+        canvas.height = 1000
+        var x_middle = canvas.width / 2
+        var ctx = canvas.getContext('2d')
+        var planets = [
+            // star
+            new Planet(20000,   0,      0,    0,      0,      'rgb(255, 120, 0)'),
+            // inner planets
+            new Planet(50,      50,     0,    0,      17,     'rgb(200, 40, 40)'),
+            new Planet(50,      100,    0,    0,      -12,    'rgb(220, 150, 150)'),
+            // middle planet and moon
+            new Planet(100,     200,    0,    0,      -9,     'rgb(0, 0, 255)'),
+            new Planet(1,       210,    0,   .1,      -11.5,  'rgb(150, 150, 180)'),
+            // outer planet and moons
+            new Planet(1000,    400,    0,    0,      -6,     'rgb(0, 190, 90)'),
+            new Planet(1,       415,    0,    0,      -13,    'rgb(0, 190, 90)'),
+            new Planet(1,       435,    0,    0,      -11,    'rgb(0, 190, 90)'),
+            new Planet(1,       425,    0,    0,      -2,     'rgb(0, 190, 90)'),
+            // pluto
+            new Planet(10,      600,    0,    0,     6,       'rgb(80, 80, 80)')
+        ]
+
+        var star = planets[0]
+
+        for (var i = 0; i < 10; i++)
+        {
+            var body = planets[5]
+
+            var direction = Math.round(Math.random()) * -1
+
+            var _x = body.x,
+                _y = body.y
+                _r = 20,
+                v = 5,
+                r = _r + Math.random()*5,
+                theta = Math.random()*2*Math.PI,
+                x = r * Math.cos(theta) + body.x,
+                y = r * Math.sin(theta) + body.y,
+                vx = -v * Math.sin(theta) + body.vx 
+                vy =  v * Math.cos(theta) + body.vy
+
+            planets.push(new Planet(0, x, y, vx, vy, 'rgb(255, 255, 255)'))
+        }
+
+        var g_const = .01
+        var dt = .015
+        var tracers = false
+        var draw_forces = false;
+
+        function loop() {
+            if (!tracers) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (a in planets) {
+                var planet_a = planets[a],
+                    net_g_x = 0,
+                    net_g_y = 0
+
+                for (b in planets) if (b != a) {
+                    var planet_b = planets[b],
+                        dx = planet_b.x - planet_a.x,
+                        dy = planet_b.y - planet_a.y,
+                        r = Math.sqrt(dx*dx + dy*dy),
+                        g_force_x = (g_const * planet_b.mass * dx) / (r*r*r),
+                        g_force_y = (g_const * planet_b.mass * dy) / (r*r*r)
+                    
+                    net_g_x += g_force_x
+                    net_g_y += g_force_y
+                }
+
+                planet_a.ax = net_g_x
+                planet_a.ay = net_g_y
+
+                planet_a.vx += planet_a.ax 
+                planet_a.vy += planet_a.ay
+
+                planet_a.x += planet_a.vx * dt
+                planet_a.y += planet_a.vy * dt
+
+                ctx.fillStyle = planet_a.color
+
+                var 
+                    size = 1 + Math.pow(planet_a.mass, .3333),
+                    x = planet_a.x - size/2 + canvas.width/2 - (star ? star.x : 0),
+                    y = (canvas.height/2-planet_a.y) - size/2 + (star ? star.y : 0)
+
+                ctx.fillRect(x, y, size, size)
+
+                if (draw_forces) {
+                    drawForces(x + size/2, y+size/2, planet_a)
+                }
+
+            }
+        }
+
+        window.setInterval(loop, dt * 0)    
+
+        document.addEventListener('keydown', function(e) {
+            function isNumeric(n) {
+                return !isNaN(parseFloat(n)) && isFinite(n);
+            }
+
+            if (e.key == 't') {
+                tracers = !tracers
+            }
+            if (e.key == 'f') {
+                draw_forces = !draw_forces
+            }
+            if (isNumeric(e.key)) {
+                if (star == planets[parseInt(e.key)]) {
+                    star = false
+                } else {
+                    star = planets[parseInt(e.key)]
+                }
+            }
+
+        })
+
+    </script>
+</body>
